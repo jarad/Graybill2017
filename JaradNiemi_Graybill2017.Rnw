@@ -1,0 +1,284 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% a0poster Landscape Poster
+% LaTeX Template
+% Version 1.0 (22/06/13)
+%
+% The a0poster class was created by:
+% Gerlinde Kettl and Matthias Weiser (tex@kettl.de)
+% 
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[landscape]{a0poster}
+
+\usepackage{multicol} % This is so we can have multiple columns of text side-by-side
+\columnsep=100pt % This is the amount of white space between the columns in the poster
+\columnseprule=3pt % This is the thickness of the black line between the columns in the poster
+
+\usepackage{color}
+\definecolor{cardinal}{RGB}{200, 16, 46}
+\definecolor{gold}{RGB}{241,190,72}
+\definecolor{darkgray}{RGB}{82, 71, 39}
+
+
+\usepackage{times} % Use the times font
+%\usepackage{palatino} % Uncomment to use the Palatino font
+
+\usepackage{graphicx} % Required for including images
+\graphicspath{{figures/}} % Location of the graphics files
+\usepackage{booktabs} % Top and bottom rules for table
+\usepackage[font=small,labelfont=bf]{caption} % Required for specifying captions to tables and figures
+\usepackage{amsfonts, amsmath, amsthm, amssymb} % For math fonts, symbols and environments
+\usepackage{wrapfig} % Allows wrapping text around tables and figures
+
+\usepackage{algorithm}
+\usepackage{sectsty}
+
+\providecommand{\RNAseq}{RNA-seq} 
+\providecommand{\prl}{{\color{cardinal} In parallel,}}
+\providecommand{\red}{{\color{cardinal} Reduction}}
+
+\sectionfont{\color{cardinal}}
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	POSTER HEADER 
+%----------------------------------------------------------------------------------------
+
+\begin{minipage}[t]{0.60\linewidth}
+\veryHuge \color{cardinal} \textbf{{\tt fbseq}: An R package for fully Bayesian \\analysis of RNAseq data} \color{darkgray}\\ % Title
+% \Huge\textit{An Exploration of Complexity}\\[1cm] % Subtitle
+\huge \textbf{Jarad Niemi and Will Landau}\\ % Author(s)
+\huge Department of Statistics, Iowa State University\\ % University/organization
+\end{minipage}
+%
+\begin{minipage}[t]{0.20\linewidth}
+\color{darkgray}\Large \textbf{Contact Information:}\\
+Department of Statistics\\ % Address
+Iowa State University\\
+2208 Snedecor Hall, Ames, IA\\
+% Phone: +1 (515) 294-8679\\ % Phone number
+\texttt{niemi@iastate.edu}\\ % Email address
+\end{minipage}
+%
+\begin{minipage}[c]{0.20\linewidth}
+\vspace{1in}
+\begin{flushright}
+\includegraphics[width=20cm]{brandelements-wordmark-with-modifier.png} % Logo or a photo of you, adjust its dimensions here
+\end{flushright}
+\end{minipage}
+
+\vspace{1cm} % A bit of extra whitespace between the header and poster content
+
+%----------------------------------------------------------------------------------------
+
+\begin{multicols}{3} % This is how many columns your poster will be broken into, a poster with many figures may benefit from less columns whereas a text-heavy poster benefits from more
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT
+%----------------------------------------------------------------------------------------
+
+\color{darkgray} % Navy color for the abstract
+
+\begin{abstract}
+
+RNAseq data comprise a set of counts for G genes on a set of N samples. The counts are positively associated with the expression levels of mRNA of particular genes. Since G is typically much larger than N, we construct a hierarchical overdispersed count regression model that borrows information across genes. We estimate the high-dimensional posterior using a Markov chain Monte Carlo algorithm that utilizes a step-out slice sampler whenever Gibbs steps are unavailable. We implemented our approach in a set of three R packages: {\tt fbseq}, {\tt fbseqOpenMP}, and {\tt fbseqCUDA}. The {\tt fbseq} package provides a user interface to the two backends. The {\tt fbseqOpenMP} backend provides an implementation that is parallelized across CPU cores and is therefore useful for testing. The {\tt fbseqCUDA} backend provides an implementation on a NVIDIA graphics processing unit (GPU) and therefore is suitable to analysis of realistic data sets. The GPU version provides a million iterations of the sampler in a couple of hours with computation time scaling linearly in the number of genes and the number of samples. 
+
+\end{abstract}
+
+%----------------------------------------------------------------------------------------
+%	INTRODUCTION
+%----------------------------------------------------------------------------------------
+
+\color{darkgray} % darkgray color for the introduction
+
+\section*{\color{cardinal} Model}
+
+Let $y_{g n}$ be the \RNAseq{} count for sample $n$ ($n = 1, \ldots, N)$ and gene $g$ ($g = 1, \ldots, G)$.
+Let $X$ be the $N \times L$ model matrix for gene-specific effects ${\beta}_g = (\beta_{g 1}, \ldots, \beta_{g L})$ and let ${X}_n$ be the $n^{th}$ row of $X$.
+We assume an over-dispersed hierarchical regression model depicted below.
+
+\begin{minipage}{0.16\textwidth}
+\begin{align*}
+&y_{gn} \stackrel{\text{ind}}{\sim} \text{Poisson} \left (\exp \left (h_n + \varepsilon_{gn} + X_n \beta_{g} \right ) \right ) \\
+& \qquad \varepsilon_{gn} \stackrel{\text{ind}}{\sim} \text{Normal}(0, \gamma_g) \\
+& \qquad \qquad \gamma_g \stackrel{\text{ind}}{\sim} \text{Inverse-Gamma}\left (\frac{\nu}{2}, \frac{\nu \tau}{2} \right) \\
+& \qquad \qquad \qquad \nu \stackrel{\text{}}{\sim} \text{Uniform}(0, d) \\
+& \qquad \qquad \qquad \tau \stackrel{\text{}}{\sim} \text{Gamma}(a, \text{rate} = b) \\
+& \qquad \beta_{g\ell} \stackrel{\text{ind}}{\sim} \text{Normal}(\theta_\ell, \sigma_\ell^2) \\
+& \qquad \qquad \theta_\ell \stackrel{\text{ind}}{\sim} \text{Normal}(0, c_\ell^2) \\
+& \qquad \qquad \sigma_\ell \stackrel{\text{ind}}{\sim} \text{Uniform}(0, s_\ell)
+\end{align*}
+\end{minipage}
+\begin{minipage}{0.16\textwidth}
+\includegraphics{dag3c.pdf}
+\end{minipage}
+\captionof{figure}{\color{darkgray} Directed acyclic graph (DAG) representation of the \RNAseq{} model, along with a formulaic representation on the left. The box with $G$ in the corner indicates that each parameter inside represents multiple nodes, each specific to a value of $g = 1, \ldots, G$. The analogous interpretation holds for the boxes with $N$ and $L$, respectively. The dashed arrow from $\beta_{g\ell}$ to $y_{gn}$ indicates that an edge is present if and only if $X_n \beta_g$ is a non-constant function of $\beta_{g \ell}$: that is, if and only if $X_{n\ell} \ne 0$, where $X$ is the model matrix and $X_n$ is its $n$'th row.} \vspace{0.5cm}
+
+The $h_n$'s are normalization constants estimated from the data, 
+and they take into account sample-specific nuisance effects such as sequencing depth.
+The $\gamma_g$ parameters are analogous to the typical gene-specific negative-binomial dispersion parameters used in many other methods of \RNAseq{} data analysis.
+Generally, we are interested in the ${\beta}_g$ terms which relate elements of the model parameterization to gene expression levels.
+
+
+
+
+
+\section*{\color{cardinal} GPU parallelization}
+
+To fit the model to \RNAseq{} data, we use an overall Gibbs sampling structure and apply the univariate stepping-out slice sampler \cite{neal2003} within each of several Gibbs steps. 
+In each of the steps of the algorithm below, 
+a slice sampler is used to sample from all non-normal full conditionals. 
+Each slice-sampled parameter ($\gamma_1$, $\gamma_2, \varepsilon_{50, 5}$, etc.) has its own tuning variable and auxiliary variable.
+Slice sampling is used for the gamma and inverse-gamma full conditionals in addition to the full conditionals with unknown distributional form. 
+This is because CURAND, the random number generation library for CUDA, has no gamma sampler. 
+
+% \subsection*{\color{cardinal} Reductions}
+
+
+
+
+\subsection*{Gibbs sampler}
+\label{PAPER1alg:mcmc}
+\begin{enumerate}
+\item \prl{} sample the $\varepsilon_{g n}$'s.
+\item \prl{} sample the $\gamma_g$'s.
+\item \red{} to calculate $\sum_{g = 1}^G \left [ \log \gamma_g + \frac{\nu}{\gamma_g} \right ]$. Then sample $\nu$ from its full conditional density, which is proportional to \\
+\[
+\exp \left (- G \log \Gamma \left (\frac{\nu}{2} \right ) + \frac{G \nu}{2} \log \left ( \frac{\nu \tau}{2} \right )  - \frac{\nu}{2} \sum_{g = 1}^G \left [ \log \gamma_g + \frac{\nu}{\gamma_g} \right ] \right ).
+\]
+\item \red{} to calculate $\sum_{g = 1}^G \frac{1}{\gamma_g}$. Then sample \\ $\tau\sim \text{Gamma}\left(a + \frac{G \nu}{2}, \ \text{rate} = b + \frac{\nu}{2} \sum_{g = 1}^G \frac{1}{\gamma_g} \right )$.
+\item \label{PAPER1itm:beta} For $\ell = 1, \ldots, L$, {\color{cardinal} in parallel,} sample $\beta_{1\ell}, \ldots, \beta_{G \ell}$. 
+\item \label{PAPER1itm:theta} \red{} to calculate means and variances of the relevant $\beta_{g\ell}$'s. Then sample $\theta_1, \ldots, \theta_L$.
+\item \label{PAPER1itm:sigma} \red{} to calculate the shape and scale parameters of the inverse-gamma distributions. Then sample $\sigma_1, \ldots, \sigma_L$.
+\end{enumerate}
+
+
+In the algorithm above, we highlight the two types of steps: {\color{cardinal} in parallel} for the steps with conditionally independent parameters and {\color{cardinal} reduction} for the parameters whose full conditionals depend on sufficient quantities calculated from other parameters. 
+In step \ref{PAPER1itm:beta}, the $\beta_{g\ell}$'s are conditionally independent across $g$ for a given $\ell$, but not necessarily conditionally independent across $\ell$, as the conditional independence of the $\beta_{g\ell}$'s depends on the model matrix.
+In steps \ref{PAPER1itm:theta} and \ref{PAPER1itm:sigma}, parameter sampling after the parallelized reductions could be parallelized, but the efficiency gain is small if $L$ is small. In our application, $L$ is $5$. % WL: symbolic cross-referencing of \item entries
+
+
+\section*{\color{cardinal} Computation time}
+
+We studied computation time as a function of the number of genes $G$ and number
+of samples $N$. 
+The figure below indicates that, within the range of values we tested, 
+computation time appears to scale linearly with both $G$ and $N$.
+
+\begin{center}\vspace{0.5cm}
+\includegraphics[width=0.9\linewidth]{runtime}
+\captionof{figure}{\color{darkgray} Elapsed runtime (hours) plotted against the number of genes ($G$) and the number of \RNAseq{} samples ($N$) for $2\times 10^5$ total MCMC iterations for four chains run in sequence.}
+\end{center}
+
+
+\section*{\color{cardinal} Application to heterosis}
+
+Heterosis, or hybrid vigor, is the biological phenomenon in which hybrid progeny surpasses each of its inbred parents with respect to some characteristic. 
+Ever since Dawrin documented heterosis, the term has usually referred to traits at the phenotypic level, and phenotypic heterosis has long been used to enhance crops and livestock. For example, one well-known maize hybrid described by \cite{hallauer2010quantitative} has taller, faster-growing stalks with more grain yield than either inbred parent. Similar breeding techniques have used heterosis to improve rice, alfalfa, tomatoes, and fish. However, the underlying genomic mechanisms of phenotypic heterosis remain unclear \cite{lippman2007heterosis}.
+
+\begin{center}\vspace{1cm}
+\includegraphics[width=0.7\linewidth]{heterosis}
+\captionof{figure}{\color{darkgray} Phenotypic heterosis observed in maize between
+two parental lines P1 and P2 and their hybrid offspring B.}
+\end{center}\vspace{1cm}
+
+In our analysis,
+we used the B73 and Mo17 parental lines with both the B73xMo17 and Mo17xB73 crosses.
+The model matrix below provides a parameterization where the resulting $\beta_{g\ell}$
+are approximately independent (as assumed in our model).
+The interpretations of the $\beta$s on the log scale are
+$\beta_1$ is the parental mean, 
+$\beta_2$ is the half difference of hybrid mean vs Mo17,
+$\beta_3$ is the half difference of hybrid mean vs B73, 
+$\beta_4$ is the half difference between hybrids,
+and $\beta_5$ is the flow cell block effect.
+
+\begin{equation*} \label{PAPER2eq:x}
+X = \left (
+\begin{bmatrix}
+1 & \phantom{-}1 & -1 & \phantom{-}0 \\
+1 & -1 & \phantom{-}1 & \phantom{-}0 \\
+1 & \phantom{-}1 & \phantom{-}1 & \phantom{-}1 \\
+1 & \phantom{-}1 & \phantom{-}1 & -1 \\
+\end{bmatrix} \otimes J_{(N/4) \times 1} \qquad \qquad
+J_{(N/4) \times 1} \otimes
+\begin{bmatrix}
+\phantom{-}1  \\
+\phantom{-}1  \\
+-1 \\
+-1  \\
+\end{bmatrix} \right )
+\end{equation*}
+
+An example of a hypothesis of interest is high-parent heterosis for the B73xMo17 hybrid,
+i.e. this hybrid has mean expression level that exceeds the mean for both parents,
+which is equivalent to the proposition that both 
+$2\beta_{g2}+\beta_{g4}>0$ and $2\beta_{g3}+\beta_{g4}>0$. 
+
+\section*{\color{cardinal} Execution in R}
+
+As an example, we use the data set analyzed in \cite{paschold}.
+
+<<setup>>=
+library(fbseq)
+data(paschold) # see https://github.com/jarad/Paschold2012
+
+paschold@contrasts[[5]]
+paschold@contrasts[[6]]
+paschold@propositions$`high-parent_B73xMo17`
+@
+
+<<dependson="setup", eval=FALSE>>=
+configs    = Configs(burnin = 10, iterations = 10, thin = 1) 
+chain      = Chain(paschold, configs) 
+chain_list = fbseq(chain, backend = "CUDA")
+@
+
+
+
+
+%----------------------------------------------------------------------------------------
+%	CONCLUSIONS
+%----------------------------------------------------------------------------------------
+
+\section*{\color{cardinal} Forthcoming research}
+
+Much of this is available on \verb@https://arxiv.org/abs/1606.06659@ and 
+the packages themselves are available on Will Landau's github site 
+\verb@https://github.com/wlandau@.
+Please see Ignacio Alvarez-Castro's poster titled ``{\color{cardinal} Fully Bayesian analysis of allele-specific RNA-seq data using a hierarchical, overdispersed, count regression model}'' for 
+application of this model to allele-specific RNA-seq analysis.
+Please see Eric Mittman's poster titled ``{\color{cardinal} Bayesian nonparametric analysis of RNA-seq data}''
+for relaxing the independent normal assumptions for $\beta_g$. 
+
+%----------------------------------------------------------------------------------------
+%	REFERENCES
+%----------------------------------------------------------------------------------------
+
+% \nocite{*} % Print all references regardless of whether they were cited in the poster or not
+\bibliographystyle{plain}
+\bibliography{thesis}
+
+%----------------------------------------------------------------------------------------
+%	ACKNOWLEDGEMENTS
+%----------------------------------------------------------------------------------------
+
+\section*{\color{cardinal} Acknowledgements}
+
+This research was supported by National Institute of General Medical Sciences (NIGMS) of the National Institutes of Health and the joint National Science Foundation / NIGMS Mathematical Biology Program under award number R01GM109458. The content is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health or the National Science Foundation.
+
+%----------------------------------------------------------------------------------------
+
+\end{multicols}
+\end{document}
